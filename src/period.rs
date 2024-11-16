@@ -69,7 +69,7 @@ pub struct ParseError {
 
 impl ParseError {
     /// Constructs [`Self`].
-    pub fn new(source: ParseErrorSource, string: String) -> Self {
+    pub const fn new(source: ParseErrorSource, string: String) -> Self {
         Self { source, string }
     }
 

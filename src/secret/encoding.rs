@@ -15,7 +15,7 @@ pub struct Error {
 
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(secret: String) -> Self {
+    pub const fn new(secret: String) -> Self {
         Self { secret }
     }
 }

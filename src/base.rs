@@ -145,7 +145,7 @@ pub struct Error {
 #[cfg(feature = "auth")]
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(source: ErrorSource) -> Self {
+    pub const fn new(source: ErrorSource) -> Self {
         Self { source }
     }
 

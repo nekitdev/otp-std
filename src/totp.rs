@@ -58,7 +58,7 @@ pub fn now() -> Result<u64, TimeError> {
 
 impl<'t> Totp<'t> {
     /// Returns the base configuration.
-    pub fn base(&self) -> &Base<'t> {
+    pub const fn base(&self) -> &Base<'t> {
         &self.base
     }
 
@@ -75,12 +75,12 @@ impl<'t> Totp<'t> {
 
 impl Totp<'_> {
     /// Returns the input value corresponding to the given time.
-    pub fn input_at(&self, time: u64) -> u64 {
+    pub const fn input_at(&self, time: u64) -> u64 {
         time / self.period.get()
     }
 
     /// Returns the time corresponding to the next period from the given time.
-    pub fn next_period_at(&self, time: u64) -> u64 {
+    pub const fn next_period_at(&self, time: u64) -> u64 {
         let period = self.period.get();
 
         (time / period + 1) * period
@@ -105,7 +105,7 @@ impl Totp<'_> {
     }
 
     /// Returns the time to live of the code for the given time.
-    pub fn time_to_live_at(&self, time: u64) -> u64 {
+    pub const fn time_to_live_at(&self, time: u64) -> u64 {
         let period = self.period.get();
 
         period - time % period
@@ -305,7 +305,7 @@ pub struct Error {
 #[cfg(feature = "auth")]
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(source: ErrorSource) -> Self {
+    pub const fn new(source: ErrorSource) -> Self {
         Self { source }
     }
 

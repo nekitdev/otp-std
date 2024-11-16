@@ -26,7 +26,7 @@ pub struct Error {
 
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(source: ParseError, string: String) -> Self {
+    pub const fn new(source: ParseError, string: String) -> Self {
         Self { source, string }
     }
 
@@ -86,6 +86,7 @@ impl Counter {
     }
 
     /// Returns the incremented counter.
+    #[must_use = "this method returns the incremented value instead of modifying the original"]
     pub const fn incremented(self) -> Self {
         Self::new(self.value + 1)
     }

@@ -31,7 +31,7 @@ pub enum Otp<'o> {
 
 impl<'o> Otp<'o> {
     /// Returns the base configuration, regardless of the variant.
-    pub fn base(&self) -> &Base<'o> {
+    pub const fn base(&self) -> &Base<'o> {
         match self {
             Self::Hotp(hotp) => hotp.base(),
             Self::Totp(totp) => totp.base(),
@@ -57,7 +57,7 @@ impl<'o> Otp<'o> {
 
 impl Otp<'_> {
     /// Returns the [`Type`] of this OTP configuration.
-    pub fn type_of(&self) -> Type {
+    pub const fn type_of(&self) -> Type {
         match self {
             Self::Hotp(_) => Type::Hotp,
             Self::Totp(_) => Type::Totp,
@@ -92,7 +92,7 @@ pub struct Error {
 #[cfg(feature = "auth")]
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(source: ErrorSource) -> Self {
+    pub const fn new(source: ErrorSource) -> Self {
         Self { source }
     }
 
@@ -153,7 +153,7 @@ pub const TOTP: &str = "totp";
 
 impl Type {
     /// Returns the static string representation of this type.
-    pub fn static_str(&self) -> &'static str {
+    pub const fn static_str(&self) -> &'static str {
         match self {
             Self::Hotp => HOTP,
             Self::Totp => TOTP,
@@ -181,7 +181,7 @@ pub struct ParseTypeError {
 
 impl ParseTypeError {
     /// Constructs [`Self`].
-    pub fn new(string: String) -> Self {
+    pub const fn new(string: String) -> Self {
         Self { string }
     }
 }

@@ -32,7 +32,7 @@ pub struct Hotp<'h> {
 
 impl<'h> Hotp<'h> {
     /// Returns the base configuration.
-    pub fn base(&self) -> &Base<'h> {
+    pub const fn base(&self) -> &Base<'h> {
         &self.base
     }
 
@@ -49,7 +49,7 @@ impl<'h> Hotp<'h> {
 
 impl Hotp<'_> {
     /// Returns the current counter value.
-    pub fn counter(&self) -> u64 {
+    pub const fn counter(&self) -> u64 {
         self.counter.get()
     }
 
@@ -122,7 +122,7 @@ pub struct Error {
 #[cfg(feature = "auth")]
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(source: ErrorSource) -> Self {
+    pub const fn new(source: ErrorSource) -> Self {
         Self { source }
     }
 

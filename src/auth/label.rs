@@ -54,7 +54,7 @@ pub struct ParseError {
 
 impl ParseError {
     /// Constructs [`Self`].
-    pub fn new(source: ParseErrorSource) -> Self {
+    pub const fn new(source: ParseErrorSource) -> Self {
         Self { source }
     }
 
@@ -144,7 +144,7 @@ pub struct DecodeError {
 
 impl DecodeError {
     /// Constructs [`Self`].
-    pub fn new(source: DecodeErrorSource) -> Self {
+    pub const fn new(source: DecodeErrorSource) -> Self {
         Self { source }
     }
 

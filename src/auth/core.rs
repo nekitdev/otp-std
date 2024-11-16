@@ -60,7 +60,7 @@ pub struct SchemeError {
 
 impl SchemeError {
     /// Constructs [`Self`].
-    pub fn new(scheme: String) -> Self {
+    pub const fn new(scheme: String) -> Self {
         Self { scheme }
     }
 }
@@ -121,7 +121,7 @@ pub struct Error {
 
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(source: ErrorSource, string: String) -> Self {
+    pub const fn new(source: ErrorSource, string: String) -> Self {
         Self { source, string }
     }
 
@@ -191,17 +191,17 @@ pub const SLASH: &str = "/";
 
 impl<'a> Auth<'a> {
     /// Constructs [`Self`] from the OTP configuration and the label provided.
-    pub fn new(otp: Otp<'a>, label: Label<'a>) -> Self {
+    pub const fn new(otp: Otp<'a>, label: Label<'a>) -> Self {
         Self { otp, label }
     }
 
     /// Constructs [`Self`] from the HOTP configuration and the label provided.
-    pub fn hotp(hotp: Hotp<'a>, label: Label<'a>) -> Self {
+    pub const fn hotp(hotp: Hotp<'a>, label: Label<'a>) -> Self {
         Self::new(Otp::Hotp(hotp), label)
     }
 
     /// Constructs [`Self`] from the TOTP configuration and the label provided.
-    pub fn totp(totp: Totp<'a>, label: Label<'a>) -> Self {
+    pub const fn totp(totp: Totp<'a>, label: Label<'a>) -> Self {
         Self::new(Otp::Totp(totp), label)
     }
 

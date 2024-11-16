@@ -37,7 +37,7 @@ pub struct Error {
 
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(unknown: String) -> Self {
+    pub const fn new(unknown: String) -> Self {
         Self { unknown }
     }
 }
@@ -71,7 +71,7 @@ pub const SHA512: &str = "SHA512";
 
 impl Algorithm {
     /// Returns the static string representation of [`Self`].
-    pub fn static_str(&self) -> &'static str {
+    pub const fn static_str(&self) -> &'static str {
         match self {
             Self::Sha1 => SHA1,
             #[cfg(feature = "sha2")]

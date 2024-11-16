@@ -29,12 +29,12 @@ pub struct Error {
 
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(source: ParseError, string: String) -> Self {
+    pub const fn new(source: ParseError, string: String) -> Self {
         Self { source, string }
     }
 
     /// Wraps [`ParseIntError`] into [`ParseError`] and constructs [`Self`].
-    pub fn new_wrap(error: ParseIntError, string: String) -> Self {
+    pub const fn new_wrap(error: ParseIntError, string: String) -> Self {
         Self::new(ParseError(error), string)
     }
 }

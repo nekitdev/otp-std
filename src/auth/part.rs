@@ -49,7 +49,7 @@ pub struct SeparatorError {
 
 impl SeparatorError {
     /// Constructs [`Self`].
-    pub fn new(string: String) -> Self {
+    pub const fn new(string: String) -> Self {
         Self { string }
     }
 }
@@ -78,7 +78,7 @@ pub struct Error {
 
 impl Error {
     /// Constructs [`Self`].
-    pub fn new(source: ErrorSource) -> Self {
+    pub const fn new(source: ErrorSource) -> Self {
         Self { source }
     }
 
@@ -162,7 +162,7 @@ impl<'p> Part<'p> {
     /// # Safety
     ///
     /// The given string must be non-empty and must not contain the [`SEPARATOR`].
-    pub unsafe fn new_unchecked(string: Cow<'p, str>) -> Self {
+    pub const unsafe fn new_unchecked(string: Cow<'p, str>) -> Self {
         Self { string }
     }
 
@@ -180,7 +180,7 @@ impl<'p> Part<'p> {
     /// # Safety
     ///
     /// The given string must be non-empty and must not contain the [`SEPARATOR`].
-    pub unsafe fn owned_unchecked(string: String) -> Self {
+    pub const unsafe fn owned_unchecked(string: String) -> Self {
         Self::new_unchecked(Cow::Owned(string))
     }
 
@@ -198,7 +198,7 @@ impl<'p> Part<'p> {
     /// # Safety
     ///
     /// The given string must be non-empty and must not contain the [`SEPARATOR`].
-    pub unsafe fn borrowed_unchecked(string: &'p str) -> Self {
+    pub const unsafe fn borrowed_unchecked(string: &'p str) -> Self {
         Self::new_unchecked(Cow::Borrowed(string))
     }
 
@@ -247,7 +247,7 @@ pub struct DecodeError {
 
 impl DecodeError {
     /// Constructs [`Self`].
-    pub fn new(source: DecodeErrorSource) -> Self {
+    pub const fn new(source: DecodeErrorSource) -> Self {
         Self { source }
     }
 
