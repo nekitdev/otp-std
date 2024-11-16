@@ -123,6 +123,10 @@ impl<'s> Secret<'s> {
     }
 
     /// Constructs [`Self`] without checking the secret length.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the secret length is safe.
     pub unsafe fn new_unchecked(value: Cow<'s, [u8]>) -> Self {
         Self { value }
     }
@@ -137,6 +141,10 @@ impl<'s> Secret<'s> {
     }
 
     /// Constructs [`Self`] from borrowed data without checking the secret length.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the secret length is safe.
     pub unsafe fn borrowed_unchecked(value: &'s [u8]) -> Self {
         Self::new_unchecked(Cow::Borrowed(value))
     }
@@ -151,6 +159,10 @@ impl<'s> Secret<'s> {
     }
 
     /// Constructs [`Self`] from owned data without checking the secret length.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the secret length is safe.
     pub unsafe fn owned_unchecked(value: Vec<u8>) -> Self {
         Self::new_unchecked(Cow::Owned(value))
     }

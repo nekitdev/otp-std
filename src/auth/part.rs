@@ -158,6 +158,10 @@ impl<'p> Part<'p> {
     }
 
     /// Constructs [`Self`] without checking the given string.
+    ///
+    /// # Safety
+    ///
+    /// The given string must be non-empty and must not contain the [`SEPARATOR`].
     pub unsafe fn new_unchecked(string: Cow<'p, str>) -> Self {
         Self { string }
     }
@@ -172,6 +176,10 @@ impl<'p> Part<'p> {
     }
 
     /// Constructs [`Self`] from owned data without checking the given string.
+    ///
+    /// # Safety
+    ///
+    /// The given string must be non-empty and must not contain the [`SEPARATOR`].
     pub unsafe fn owned_unchecked(string: String) -> Self {
         Self::new_unchecked(Cow::Owned(string))
     }
@@ -186,6 +194,10 @@ impl<'p> Part<'p> {
     }
 
     /// Constructs [`Self`] from borrowed data without checking the given string.
+    ///
+    /// # Safety
+    ///
+    /// The given string must be non-empty and must not contain the [`SEPARATOR`].
     pub unsafe fn borrowed_unchecked(string: &'p str) -> Self {
         Self::new_unchecked(Cow::Borrowed(string))
     }
