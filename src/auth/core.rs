@@ -206,6 +206,10 @@ impl<'a> Auth<'a> {
     }
 
     /// Constructs the OTP URL base.
+    ///
+    /// # Panics
+    ///
+    /// The base URL is always valid, so this method should never panic.
     pub fn base_url(&self) -> Url {
         let type_of = self.otp.type_of();
         let label = self.label.encode();

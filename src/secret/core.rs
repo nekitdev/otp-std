@@ -63,7 +63,7 @@ impl Eq for Secret<'_> {}
 
 impl Hash for Secret<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.value.hash(state)
+        self.value.hash(state);
     }
 }
 

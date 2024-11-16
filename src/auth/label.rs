@@ -166,6 +166,10 @@ impl DecodeError {
 
 impl Label<'_> {
     /// Decodes the label from the given string.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DecodeError`] if the label could not be decoded.
     pub fn decode<S: AsRef<str>>(string: S) -> Result<Self, DecodeError> {
         let string = string.as_ref();
 

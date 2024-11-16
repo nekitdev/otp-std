@@ -1,6 +1,9 @@
 //! Generating and checking one-time passwords.
 
 #![warn(missing_docs)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
+#![allow(clippy::must_use_candidate)]
 
 pub mod algorithm;
 pub mod counter;

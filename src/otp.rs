@@ -118,6 +118,10 @@ impl Otp<'_> {
     }
 
     /// Extracts the OTP configuration from the given URL of the given type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`struct@Error`] if the OTP configuration could not be extracted.
     pub fn extract_from(query: &mut Query<'_>, type_of: Type) -> Result<Self, Error> {
         match type_of {
             Type::Hotp => Hotp::extract_from(query)
