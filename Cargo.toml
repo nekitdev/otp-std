@@ -15,7 +15,7 @@ categories = ["authentication", "command-line-utilities", "web-programming"]
 version = "0.5.1"
 
 [dependencies.bon]
-version = "2.3.0"
+version = "3.0.0"
 
 [dependencies.constant_time_eq]
 version = "0.3.1"
