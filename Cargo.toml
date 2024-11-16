@@ -1,0 +1,60 @@
+[package]
+name = "otp-std"
+version = "0.1.0"
+authors = ["nekitdev <nekit@nekit.dev>"]
+edition = "2021"
+description = "Generating and checking one-time passwords."
+documentation = "https://docs.rs/otp-std"
+readme = "README.md"
+repository = "https://github.com/nekitdev/otp-std"
+license = "MIT"
+keywords = ["otp", "totp", "hotp"]
+categories = ["authentication", "command-line-utilities", "web-programming"]
+
+[dependencies.base32]
+version = "0.5.1"
+
+[dependencies.bon]
+version = "2.3.0"
+
+[dependencies.constant_time_eq]
+version = "0.3.1"
+
+[dependencies.hmac]
+version = "0.12.1"
+
+[dependencies.miette]
+version = "7.2.0"
+
+[dependencies.rand]
+version = "0.8.5"
+optional = true
+
+[dependencies.serde]
+version = "1.0.213"
+features = ["derive"]
+optional = true
+
+[dependencies.sha1]
+version = "0.10.6"
+
+[dependencies.sha2]
+version = "0.10.8"
+optional = true
+
+[dependencies.thiserror]
+version = "2.0.0"
+
+[dependencies.url]
+version = "2.5.2"
+optional = true
+
+[dependencies.urlencoding]
+version = "2.1.3"
+optional = true
+
+[features]
+default = ["generate-secret", "auth"]
+unsafe-length = []
+generate-secret = ["dep:rand"]
+auth = ["dep:url", "dep:urlencoding"]
