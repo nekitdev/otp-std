@@ -25,7 +25,7 @@ pub const DEFAULT: u8 = MIN;
 #[error("expected digits in `[{MIN}, {MAX}]` range, got `{value}`")]
 #[diagnostic(
     code(otp_std::digits),
-    help("make sure the digits are between `{MIN}` and `{MAX}`")
+    help("make sure the digits are at least `{MIN}` and at most `{MAX}`")
 )]
 pub struct Error {
     /// The invalid value.
