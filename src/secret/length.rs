@@ -7,18 +7,12 @@ use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
 
-#[cfg(not(feature = "unsafe-length"))]
-use crate::macros::const_assert;
-
 /// The default (and recommended) secret length.
 pub const DEFAULT: usize = 20;
 
 /// The minimum allowed secret length.
 #[cfg(not(feature = "unsafe-length"))]
 pub const MIN: usize = 16;
-
-#[cfg(not(feature = "unsafe-length"))]
-const_assert!(DEFAULT >= MIN);
 
 /// Errors are never returned when `unsafe-length` is enabled.
 #[cfg(feature = "unsafe-length")]

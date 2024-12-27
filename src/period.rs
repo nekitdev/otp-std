@@ -9,15 +9,11 @@ use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
 
-use crate::{int, macros::const_assert};
-
 /// The minimum period value.
 pub const MIN: u64 = 1;
 
 /// The default period value.
 pub const DEFAULT: u64 = 30;
-
-const_assert!(DEFAULT >= MIN);
 
 /// Represents errors that can occur during period creation.
 ///
@@ -48,7 +44,7 @@ pub enum ParseErrorSource {
     /// Invalid period value.
     Period(#[from] Error),
     /// Integer parse error.
-    Int(#[from] int::ParseError),
+    Int(#[from] crate::int::ParseError),
 }
 
 /// Represents errors that occur when parsing [`Period`] values.
@@ -79,13 +75,17 @@ impl ParseError {
     }
 
     /// Constructs [`Self`] from [`int::ParseError`].
-    pub fn int(error: int::ParseError, string: String) -> Self {
+    ///
+    /// [`int::ParseError`]: crate::int::ParseError
+    pub fn int(error: crate::int::ParseError, string: String) -> Self {
         Self::new(error.into(), string)
     }
 
     /// Wraps [`ParseIntError`] into [`int::ParseError`] and constructs [`Self`] from it.
+    ///
+    /// [`int::ParseError`]: crate::int::ParseError
     pub fn wrap_int(error: ParseIntError, string: String) -> Self {
-        Self::int(int::ParseError(error), string)
+        Self::int(crate::int::ParseError(error), string)
     }
 }
 

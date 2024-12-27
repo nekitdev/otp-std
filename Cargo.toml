@@ -1,6 +1,6 @@
 [package]
 name = "otp-std"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["nekitdev <nekit@nekit.dev>"]
 edition = "2021"
 description = "Generating and checking one-time passwords."
@@ -15,7 +15,7 @@ categories = ["authentication", "command-line-utilities", "web-programming"]
 version = "0.5.1"
 
 [dependencies.bon]
-version = "3.0.0"
+version = "3.3.1"
 
 [dependencies.constant_time_eq]
 version = "0.3.1"
@@ -24,14 +24,14 @@ version = "0.3.1"
 version = "0.12.1"
 
 [dependencies.miette]
-version = "7.2.0"
+version = "7.4.0"
 
 [dependencies.rand]
 version = "0.8.5"
 optional = true
 
 [dependencies.serde]
-version = "1.0.213"
+version = "1.0.216"
 features = ["derive"]
 optional = true
 
@@ -43,10 +43,10 @@ version = "0.10.8"
 optional = true
 
 [dependencies.thiserror]
-version = "2.0.0"
+version = "2.0.9"
 
 [dependencies.url]
-version = "2.5.2"
+version = "2.5.4"
 optional = true
 
 [dependencies.urlencoding]
