@@ -9,7 +9,7 @@ readme = "README.md"
 repository = "https://github.com/nekitdev/otp-std"
 license = "MIT"
 keywords = ["otp", "totp", "hotp"]
-categories = ["authentication", "command-line-utilities", "web-programming"]
+categories = ["authentication", "web-programming"]
 
 [dependencies.base32]
 version = "0.5.1"
