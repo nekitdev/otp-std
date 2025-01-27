@@ -136,7 +136,7 @@ mod tests {
     use super::Skew;
 
     #[test]
-    fn test_zero() {
+    fn zero() {
         let skew = Skew::new(0);
 
         let value = 13;
@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_one() {
+    fn one() {
         let skew = Skew::new(1);
 
         let value = 13;
@@ -161,10 +161,4 @@ mod tests {
 
         assert_eq!(values.next(), None);
     }
-
-    #[test]
-    fn test_overflow() {}
-
-    #[test]
-    fn test_underflow() {}
 }

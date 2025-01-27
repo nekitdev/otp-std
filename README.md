@@ -93,6 +93,7 @@ fn main() {
     let duration = Duration::from_secs(totp.period.get());
 
     let code = totp.generate();
+
     sleep(duration);
 
     let other = totp.generate();

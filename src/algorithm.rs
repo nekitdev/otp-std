@@ -6,7 +6,7 @@ use hmac::{Hmac, Mac};
 
 use miette::Diagnostic;
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use sha1::Sha1;
 
@@ -44,8 +44,6 @@ impl Error {
 
 /// Represents hash algorithms used in HMACs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 pub enum Algorithm {
     /// SHA-1 algorithm.
     #[default]
@@ -68,6 +66,25 @@ pub const SHA256: &str = "SHA256";
 /// The `SHA512` literal.
 #[cfg(feature = "sha2")]
 pub const SHA512: &str = "SHA512";
+
+#[cfg(feature = "serde")]
+type Slice<'s> = &'s str;
+
+#[cfg(feature = "serde")]
+impl Serialize for Algorithm {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.static_str().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Algorithm {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let slice: Slice<'_> = Slice::deserialize(deserializer)?;
+
+        slice.parse().map_err(de::Error::custom)
+    }
+}
 
 impl Algorithm {
     /// Returns the static string representation of [`Self`].
