@@ -1,4 +1,4 @@
-//! HOTP (Hmac-based One-Time Password) functionality.
+//! Hmac-based One-Time Password (HOTP) functionality.
 
 use bon::Builder;
 
@@ -11,13 +11,13 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "auth")]
 use thiserror::Error;
 
-#[cfg(feature = "auth")]
-use url::Url;
-
 use crate::{base::Base, counter::Counter};
 
 #[cfg(feature = "auth")]
-use crate::{auth::query::Query, base, counter};
+use crate::{
+    auth::{query::Query, url::Url},
+    base, counter,
+};
 
 /// Represents HOTP configuration.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
@@ -27,6 +27,8 @@ pub struct Hotp<'h> {
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub base: Base<'h>,
     /// The counter used to generate codes.
+    #[builder(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub counter: Counter,
 }
 
@@ -53,9 +55,24 @@ impl Hotp<'_> {
         self.counter.get()
     }
 
-    /// Increments the counter value.
+    /// Tries to increment the counter, returning [`bool`] indicating success.
+    pub fn try_increment(&mut self) -> bool {
+        if let Some(next) = self.counter.try_next() {
+            self.counter = next;
+
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Increments the counter, panicking on overflows.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the counter overflows.
     pub fn increment(&mut self) {
-        self.counter = self.counter.incremented();
+        self.counter = self.counter.next();
     }
 
     /// Generates the code for the current counter value.
@@ -150,21 +167,19 @@ impl Error {
 #[cfg(feature = "auth")]
 impl Hotp<'_> {
     /// Applies the HOTP configuration to the given URL.
-    ///
-    /// Note that this method applies the base configuration on its own.
     pub fn query_for(&self, url: &mut Url) {
         self.base.query_for(url);
 
         let counter = self.counter.to_string();
 
-        url.query_pairs_mut().append_pair(COUNTER, &counter);
+        url.query_pairs_mut().append_pair(COUNTER, counter.as_str());
     }
 
-    /// Extracts the TOTP configuration from the given query.
+    /// Extracts the HOTP configuration from the given query.
     ///
     /// # Errors
     ///
-    /// Returns [`struct@Error`] if extraction fails.
+    /// Returns [`struct@Error`] if the HOTP configuration could not be extracted.
     pub fn extract_from(query: &mut Query<'_>) -> Result<Self, Error> {
         let base = Base::extract_from(query).map_err(Error::base)?;
 
@@ -177,5 +192,18 @@ impl Hotp<'_> {
         let hotp = Self::builder().base(base).counter(counter).build();
 
         Ok(hotp)
+    }
+}
+
+/// Represents owned [`Hotp`].
+pub type Owned = Hotp<'static>;
+
+impl Hotp<'_> {
+    /// Converts [`Self`] into [`Owned`].
+    pub fn into_owned(self) -> Owned {
+        Owned::builder()
+            .base(self.base.into_owned())
+            .counter(self.counter)
+            .build()
     }
 }

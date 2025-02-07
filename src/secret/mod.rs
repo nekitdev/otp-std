@@ -10,4 +10,4 @@ pub mod core;
 
 pub use length::Length;
 
-pub use core::{Error, Secret};
+pub use core::{Error, Owned, Secret};

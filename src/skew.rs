@@ -1,4 +1,4 @@
-//! Value skews.
+//! Time-based One-Time Password (TOTP) skews.
 
 use std::{fmt, iter::once, num::ParseIntError, str::FromStr};
 
@@ -9,7 +9,13 @@ use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
 
-use crate::int::ParseError;
+use crate::{
+    int::{self, ParseError},
+    macros::errors,
+};
+
+/// The disabled skew value.
+pub const DISABLED: u64 = 0;
 
 /// The default skew value.
 pub const DEFAULT: u64 = 1;
@@ -53,9 +59,15 @@ impl FromStr for Skew {
     type Err = Error;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
+        errors! {
+            Type = Self::Err,
+            Hack = $,
+            error => new(error, string => to_owned),
+        }
+
         let value = string
             .parse()
-            .map_err(|error| Self::Err::new_wrap(error, string.to_owned()))?;
+            .map_err(|error| error!(int::wrap(error), string))?;
 
         Ok(Self::new(value))
     }
@@ -63,7 +75,7 @@ impl FromStr for Skew {
 
 impl fmt::Display for Skew {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.value.fmt(formatter)
+        self.get().fmt(formatter)
     }
 }
 
@@ -75,7 +87,7 @@ impl From<u64> for Skew {
 
 impl From<Skew> for u64 {
     fn from(skew: Skew) -> Self {
-        skew.value
+        skew.get()
     }
 }
 
@@ -91,9 +103,14 @@ impl Skew {
         Self { value }
     }
 
-    /// Gets the value wrapped in [`Self`].
+    /// Returns the value wrapped in [`Self`].
     pub const fn get(self) -> u64 {
         self.value
+    }
+
+    /// Returns the disabled [`Self`].
+    pub const fn disabled() -> Self {
+        Self::DISABLED
     }
 
     /// Applies the skew to the given value.
@@ -104,61 +121,66 @@ impl Skew {
     /// n - s, n - s + 1, ..., n - 1, n, n + 1, ..., n + s - 1, n + s
     /// ```
     ///
-    /// # Example
+    /// # Note
+    ///
+    /// In case of overflows, the iterator will skip the values that would cause them.
+    ///
+    /// # Examples
+    ///
+    /// Using zero to only accept the *exact* value:
+    ///
+    /// ```
+    /// use otp_std::Skew;
+    ///
+    /// let skew = Skew::new(0);
+    ///
+    /// let mut values = skew.apply(13);
+    ///
+    /// assert_eq!(values.next(), Some(13));
+    /// assert_eq!(values.next(), None);
+    /// ```
+    ///
+    /// Using one:
     ///
     /// ```
     /// use otp_std::Skew;
     ///
     /// let skew = Skew::new(1);
     ///
-    /// let value = 13;
-    ///
-    /// let mut values = skew.apply(value);
+    /// let mut values = skew.apply(13);
     ///
     /// assert_eq!(values.next(), Some(12));
     /// assert_eq!(values.next(), Some(13));
     /// assert_eq!(values.next(), Some(14));
     /// assert_eq!(values.next(), None);
     /// ```
+    ///
+    /// Overflow handling:
+    ///
+    /// ```rust
+    /// use otp_std::Skew;
+    ///
+    /// let skew = Skew::new(1);
+    ///
+    /// let value = u64::MAX;
+    ///
+    /// let mut values = skew.apply(value);
+    ///
+    /// assert_eq!(values.next(), Some(value - 1));
+    /// assert_eq!(values.next(), Some(value));
+    /// assert_eq!(values.next(), None);
+    /// ```
     pub fn apply(self, value: u64) -> impl Iterator<Item = u64> {
-        let add = (1..=self.value).filter_map(move |offset| value.checked_add(offset));
-        let sub = (1..=self.value).filter_map(move |offset| value.checked_sub(offset));
+        let sub = (1..=self.get()).filter_map(move |offset| value.checked_sub(offset));
+
+        let add = (1..=self.get()).filter_map(move |offset| value.checked_add(offset));
 
         sub.rev().chain(once(value)).chain(add)
     }
 
+    /// The disabled [`Self`] value.
+    pub const DISABLED: Self = Self::new(DISABLED);
+
     /// The default [`Self`] value.
     pub const DEFAULT: Self = Self::new(DEFAULT);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Skew;
-
-    #[test]
-    fn zero() {
-        let skew = Skew::new(0);
-
-        let value = 13;
-
-        let mut values = skew.apply(value);
-
-        assert_eq!(values.next(), Some(value));
-        assert_eq!(values.next(), None);
-    }
-
-    #[test]
-    fn one() {
-        let skew = Skew::new(1);
-
-        let value = 13;
-
-        let mut values = skew.apply(value);
-
-        assert_eq!(values.next(), Some(value - 1));
-        assert_eq!(values.next(), Some(value));
-        assert_eq!(values.next(), Some(value + 1));
-
-        assert_eq!(values.next(), None);
-    }
 }

@@ -13,3 +13,8 @@ use thiserror::Error;
     help("make sure the part decodes to valid utf-8")
 )]
 pub struct Error(#[from] pub FromUtf8Error);
+
+/// Wraps the given error into [`struct@Error`].
+pub const fn wrap(error: FromUtf8Error) -> Error {
+    Error(error)
+}

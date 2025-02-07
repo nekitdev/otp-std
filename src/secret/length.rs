@@ -7,20 +7,24 @@ use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
 
+use crate::{algorithm::Algorithm, macros::const_result_ok};
+
+use crate::macros::{errors, quick_error};
+
 /// The default (and recommended) secret length.
 pub const DEFAULT: usize = 20;
+
+/// The minimum allowed secret length.
+#[cfg(feature = "unsafe-length")]
+pub const MIN: usize = 0;
 
 /// The minimum allowed secret length.
 #[cfg(not(feature = "unsafe-length"))]
 pub const MIN: usize = 16;
 
-/// Errors are never returned when `unsafe-length` is enabled.
-#[cfg(feature = "unsafe-length")]
-#[derive(Debug, Error, Diagnostic)]
-pub enum Error {}
-
 /// Represents errors returned when unsafe lengths are used.
-#[cfg(not(feature = "unsafe-length"))]
+///
+/// Note that this error is never returned when the `unsafe-length` feature is enabled.
 #[derive(Debug, Error, Diagnostic)]
 #[error("expected length of at least `{MIN}`, got `{length}`")]
 #[diagnostic(
@@ -32,7 +36,6 @@ pub struct Error {
     pub length: usize,
 }
 
-#[cfg(not(feature = "unsafe-length"))]
 impl Error {
     /// Constructs [`Self`].
     pub const fn new(length: usize) -> Self {
@@ -58,7 +61,7 @@ impl TryFrom<usize> for Length {
 
 impl From<Length> for usize {
     fn from(length: Length) -> Self {
-        length.value
+        length.get()
     }
 }
 
@@ -68,36 +71,46 @@ impl Default for Length {
     }
 }
 
-impl Length {
-    /// Constructs [`Self`] without checking the length.
-    ///
-    /// # Errors
-    ///
-    /// This function never fails when `unsafe-length` is enabled.
-    #[cfg(feature = "unsafe-length")]
-    pub const fn new(value: usize) -> Result<Self, Error> {
-        Ok(unsafe { Self::new_unchecked(value) })
-    }
+errors! {
+    Type = Error,
+    Hack = $,
+    error => new(length),
+}
 
+impl Length {
     /// Constructs [`Self`], if possible.
     ///
     /// # Errors
     ///
-    /// This function returns [`struct@Error`] if the given value is less than [`MIN`].
-    #[cfg(not(feature = "unsafe-length"))]
+    /// This function never fails when the `unsafe-length` feature is enabled.
+    /// Otherwise, it returns an error containing the unsafe value provided.
     pub const fn new(value: usize) -> Result<Self, Error> {
-        if value < MIN {
-            Err(Error::new(value))
-        } else {
-            Ok(unsafe { Self::new_unchecked(value) })
-        }
+        quick_error!(value < MIN => error!(value));
+
+        Ok(unsafe { Self::new_unchecked(value) })
+    }
+
+    /// Similar to [`new`], but the error is discarded.
+    ///
+    /// [`new`]: Self::new
+    pub const fn new_ok(value: usize) -> Option<Self> {
+        const_result_ok!(Self::new(value))
     }
 
     /// Constructs [`Self`] without checking the length.
     ///
     /// # Safety
+    ///
+    /// The caller must ensure that the given value is valid for [`Self`].
     pub const unsafe fn new_unchecked(value: usize) -> Self {
         Self { value }
+    }
+
+    /// Returns the recommended length for the given [`Algorithm`].
+    pub const fn recommended_for(algorithm: Algorithm) -> Self {
+        // SAFETY: the length is known to be valid for `Self`
+        // regardless of the `unsafe-length` feature.
+        unsafe { Self::new_unchecked(algorithm.recommended_length()) }
     }
 
     /// Returns the length value.
@@ -106,9 +119,8 @@ impl Length {
     }
 
     /// The minimum [`Self`] value.
-    #[cfg(not(feature = "unsafe-length"))]
-    pub const MIN: Self = unsafe { Self::new_unchecked(MIN) };
+    pub const MIN: Self = Self::new_ok(MIN).unwrap();
 
     /// The default [`Self`] value.
-    pub const DEFAULT: Self = unsafe { Self::new_unchecked(DEFAULT) };
+    pub const DEFAULT: Self = Self::new_ok(DEFAULT).unwrap();
 }

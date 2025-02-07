@@ -1,31 +1,28 @@
 //! Time-based One-Time Password (TOTP) functionality.
 
-use std::time::{SystemTime, SystemTimeError, UNIX_EPOCH};
-
 use bon::Builder;
-use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "auth")]
+use miette::Diagnostic;
+
+#[cfg(feature = "auth")]
 use thiserror::Error;
 
 #[cfg(feature = "auth")]
-use url::Url;
+use crate::auth::url::Url;
 
-use crate::{base::Base, period::Period, skew::Skew};
+use crate::{
+    base::Base,
+    period::Period,
+    skew::Skew,
+    time::{self, expect_now, now},
+};
 
 #[cfg(feature = "auth")]
 use crate::{auth::query::Query, base, period};
-
-/// The error message for when the system time is before the epoch.
-pub const SYSTEM_TIME_BEFORE_EPOCH: &str = "system time is before epoch";
-
-/// Wraps [`SystemTimeError`] to provide diagnostics.
-#[derive(Debug, Error, Diagnostic)]
-#[error("system time is before epoch")]
-#[diagnostic(code(otp_std::totp), help("see the report for more information"))]
-pub struct TimeError(#[from] pub SystemTimeError);
 
 /// Represents TOTP configurations.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
@@ -42,18 +39,6 @@ pub struct Totp<'t> {
     #[builder(default)]
     #[cfg_attr(feature = "serde", serde(default))]
     pub period: Period,
-}
-
-/// Returns the current time as seconds since the epoch.
-///
-/// # Errors
-///
-/// Returns [`TimeError`] if the system time is before the epoch.
-pub fn now() -> Result<u64, TimeError> {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .map_err(TimeError)
 }
 
 impl<'t> Totp<'t> {
@@ -90,8 +75,8 @@ impl Totp<'_> {
     ///
     /// # Errors
     ///
-    /// Returns [`TimeError`] if the system time is before the epoch.
-    pub fn try_next_period(&self) -> Result<u64, TimeError> {
+    /// Returns [`time::Error`] if the system time is before the epoch.
+    pub fn try_next_period(&self) -> Result<u64, time::Error> {
         now().map(|time| self.next_period_at(time))
     }
 
@@ -101,7 +86,7 @@ impl Totp<'_> {
     ///
     /// Panics if the system time is before the epoch.
     pub fn next_period(&self) -> u64 {
-        self.try_next_period().expect(SYSTEM_TIME_BEFORE_EPOCH)
+        self.next_period_at(expect_now())
     }
 
     /// Returns the time to live of the code for the given time.
@@ -115,8 +100,8 @@ impl Totp<'_> {
     ///
     /// # Errors
     ///
-    /// Returns [`TimeError`] if the system time is before the epoch.
-    pub fn try_time_to_live(&self) -> Result<u64, TimeError> {
+    /// Returns [`time::Error`] if the system time is before the epoch.
+    pub fn try_time_to_live(&self) -> Result<u64, time::Error> {
         now().map(|time| self.time_to_live_at(time))
     }
 
@@ -126,7 +111,7 @@ impl Totp<'_> {
     ///
     /// Panics if the system time is before the epoch.
     pub fn time_to_live(&self) -> u64 {
-        self.try_time_to_live().expect(SYSTEM_TIME_BEFORE_EPOCH)
+        self.time_to_live_at(expect_now())
     }
 
     /// Generates the code for the given time.
@@ -143,8 +128,8 @@ impl Totp<'_> {
     ///
     /// # Errors
     ///
-    /// Returns [`TimeError`] if the system time is before the epoch.
-    pub fn try_generate(&self) -> Result<u32, TimeError> {
+    /// Returns [`time::Error`] if the system time is before the epoch.
+    pub fn try_generate(&self) -> Result<u32, time::Error> {
         now().map(|time| self.generate_at(time))
     }
 
@@ -154,15 +139,15 @@ impl Totp<'_> {
     ///
     /// Panics if the system time is before the epoch.
     pub fn generate(&self) -> u32 {
-        self.try_generate().expect(SYSTEM_TIME_BEFORE_EPOCH)
+        self.generate_at(expect_now())
     }
 
     /// Tries to generate the string code for the current time.
     ///
     /// # Errors
     ///
-    /// Returns [`TimeError`] if the system time is before the epoch.
-    pub fn try_generate_string(&self) -> Result<String, TimeError> {
+    /// Returns [`time::Error`] if the system time is before the epoch.
+    pub fn try_generate_string(&self) -> Result<String, time::Error> {
         now().map(|time| self.generate_string_at(time))
     }
 
@@ -172,16 +157,16 @@ impl Totp<'_> {
     ///
     /// Panics if the system time is before the epoch.
     pub fn generate_string(&self) -> String {
-        self.try_generate_string().expect(SYSTEM_TIME_BEFORE_EPOCH)
+        self.generate_string_at(expect_now())
     }
 
     /// Verifies the given code for the given time.
-    pub fn verify_at(&self, time: u64, code: u32) -> bool {
+    pub fn verify_exact_at(&self, time: u64, code: u32) -> bool {
         self.base.verify(self.input_at(time), code)
     }
 
     /// Verifies the given string code for the given time.
-    pub fn verify_string_at<S: AsRef<str>>(&self, time: u64, code: S) -> bool {
+    pub fn verify_string_exact_at<S: AsRef<str>>(&self, time: u64, code: S) -> bool {
         self.base.verify_string(self.input_at(time), code)
     }
 
@@ -189,9 +174,9 @@ impl Totp<'_> {
     ///
     /// # Errors
     ///
-    /// Returns [`TimeError`] if the system time is before the epoch.
-    pub fn try_verify_exact(&self, code: u32) -> Result<bool, TimeError> {
-        now().map(|time| self.verify_at(time, code))
+    /// Returns [`time::Error`] if the system time is before the epoch.
+    pub fn try_verify_exact(&self, code: u32) -> Result<bool, time::Error> {
+        now().map(|time| self.verify_exact_at(time, code))
     }
 
     /// Verifies the given code for the current time *exactly*.
@@ -200,16 +185,16 @@ impl Totp<'_> {
     ///
     /// Panics if the system time is before the epoch.
     pub fn verify_exact(&self, code: u32) -> bool {
-        self.try_verify_exact(code).expect(SYSTEM_TIME_BEFORE_EPOCH)
+        self.verify_exact_at(expect_now(), code)
     }
 
     /// Tries to verify the given string code for the current time *exactly*.
     ///
     /// # Errors
     ///
-    /// Returns [`TimeError`] if the system time is before the epoch.
-    pub fn try_verify_string_exact<S: AsRef<str>>(&self, code: S) -> Result<bool, TimeError> {
-        now().map(|time| self.verify_string_at(time, code))
+    /// Returns [`time::Error`] if the system time is before the epoch.
+    pub fn try_verify_string_exact<S: AsRef<str>>(&self, code: S) -> Result<bool, time::Error> {
+        now().map(|time| self.verify_string_exact_at(time, code))
     }
 
     /// Verifies the given string code for the current time *exactly*.
@@ -218,21 +203,34 @@ impl Totp<'_> {
     ///
     /// Panics if the system time is before the epoch.
     pub fn verify_string_exact<S: AsRef<str>>(&self, code: S) -> bool {
-        self.try_verify_string_exact(code)
-            .expect(SYSTEM_TIME_BEFORE_EPOCH)
+        self.verify_string_exact_at(expect_now(), code)
+    }
+
+    /// Verifies the given code for the given time, accounting for *skews*.
+    pub fn verify_at(&self, time: u64, code: u32) -> bool {
+        self.skew
+            .apply(self.input_at(time))
+            .any(|input| self.base.verify(input, code))
+    }
+
+    fn verify_str_at(&self, time: u64, code: &str) -> bool {
+        self.skew
+            .apply(self.input_at(time))
+            .any(|input| self.base.verify_string(input, code))
+    }
+
+    /// Verifies the given string code for the given time, accounting for *skews*.
+    pub fn verify_string_at<S: AsRef<str>>(&self, time: u64, code: S) -> bool {
+        self.verify_str_at(time, code.as_ref())
     }
 
     /// Tries to verify the given code for the current time, accounting for *skews*.
     ///
     /// # Errors
     ///
-    /// Returns [`TimeError`] if the system time is before the epoch.
-    pub fn try_verify(&self, code: u32) -> Result<bool, TimeError> {
-        now().map(|time| self.input_at(time)).map(|base| {
-            self.skew
-                .apply(base)
-                .any(|input| self.base.verify(input, code))
-        })
+    /// Returns [`time::Error`] if the system time is before the epoch.
+    pub fn try_verify(&self, code: u32) -> Result<bool, time::Error> {
+        now().map(|time| self.verify_at(time, code))
     }
 
     /// Verifies the given code for the current time, accounting for *skews*.
@@ -241,22 +239,16 @@ impl Totp<'_> {
     ///
     /// Panics if the system time is before the epoch.
     pub fn verify(&self, code: u32) -> bool {
-        self.try_verify(code).expect(SYSTEM_TIME_BEFORE_EPOCH)
+        self.verify_at(expect_now(), code)
     }
 
     /// Tries to verify the given string code for the current time, accounting for *skews*.
     ///
     /// # Errors
     ///
-    /// Returns [`TimeError`] if the system time is before the epoch.
-    pub fn try_verify_string<S: AsRef<str>>(&self, code: S) -> Result<bool, TimeError> {
-        let code = code.as_ref();
-
-        now().map(|time| self.input_at(time)).map(|base| {
-            self.skew
-                .apply(base)
-                .any(|input| self.base.verify_string(input, code))
-        })
+    /// Returns [`time::Error`] if the system time is before the epoch.
+    pub fn try_verify_string<S: AsRef<str>>(&self, code: S) -> Result<bool, time::Error> {
+        now().map(|time| self.verify_string_at(time, code))
     }
 
     /// Verifies the given string code for the current time, accounting for *skews*.
@@ -265,8 +257,7 @@ impl Totp<'_> {
     ///
     /// Panics if the system time is before the epoch.
     pub fn verify_string<S: AsRef<str>>(&self, code: S) -> bool {
-        self.try_verify_string(code)
-            .expect(SYSTEM_TIME_BEFORE_EPOCH)
+        self.verify_string_at(expect_now(), code)
     }
 }
 
@@ -291,10 +282,7 @@ pub enum ErrorSource {
 #[cfg(feature = "auth")]
 #[derive(Debug, Error, Diagnostic)]
 #[error("failed to extract TOTP from OTP URL")]
-#[diagnostic(
-    code(otp_std::totp::extract),
-    help("see the report for more information")
-)]
+#[diagnostic(code(otp_std::totp), help("see the report for more information"))]
 pub struct Error {
     /// The source of this error.
     #[source]
@@ -353,5 +341,19 @@ impl Totp<'_> {
             .build();
 
         Ok(totp)
+    }
+}
+
+/// Represents owned [`Totp`].
+pub type Owned = Totp<'static>;
+
+impl Totp<'_> {
+    /// Converts [`Self`] into [`Owned`].
+    pub fn into_owned(self) -> Owned {
+        Owned::builder()
+            .base(self.base.into_owned())
+            .skew(self.skew)
+            .period(self.period)
+            .build()
     }
 }

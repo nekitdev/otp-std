@@ -28,13 +28,21 @@ pub fn encode<S: AsRef<[u8]>>(secret: S) -> String {
     base32::encode(ALPHABET, secret.as_ref())
 }
 
+macro_rules! decode_error {
+    ($secret: expr) => {
+        Error::new($secret.to_owned())
+    };
+}
+
 /// Decodes the given secret.
 ///
 /// # Errors
 ///
 /// Returns [`struct@Error`] if the secret could not be decoded.
 pub fn decode<S: AsRef<str>>(secret: S) -> Result<Vec<u8>, Error> {
-    let secret = secret.as_ref();
+    fn decode_inner(secret: &str) -> Result<Vec<u8>, Error> {
+        base32::decode(ALPHABET, secret).ok_or_else(|| decode_error!(secret))
+    }
 
-    base32::decode(ALPHABET, secret).ok_or_else(|| Error::new(secret.to_owned()))
+    decode_inner(secret.as_ref())
 }

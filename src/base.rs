@@ -14,13 +14,14 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "auth")]
 use thiserror::Error;
 
-#[cfg(feature = "auth")]
-use url::Url;
-
 use crate::{algorithm::Algorithm, digits::Digits, secret::core::Secret};
 
 #[cfg(feature = "auth")]
-use crate::{algorithm, auth::query::Query, digits, secret};
+use crate::{
+    algorithm,
+    auth::{query::Query, url::Url},
+    digits, secret,
+};
 
 /// Represents OTP base configuration.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
@@ -40,6 +41,7 @@ pub struct Base<'b> {
 
 /// The mask used to extract relevant bits.
 pub const MASK: u32 = 0x7FFF_FFFF;
+
 /// The half byte to extract the offset.
 pub const HALF_BYTE: u8 = 0xF;
 
@@ -186,16 +188,16 @@ impl Base<'_> {
         let digits = self.digits.to_string();
 
         url.query_pairs_mut()
-            .append_pair(SECRET, &secret)
+            .append_pair(SECRET, secret.as_str())
             .append_pair(ALGORITHM, algorithm)
-            .append_pair(DIGITS, &digits);
+            .append_pair(DIGITS, digits.as_str());
     }
 
-    /// Extracts [`Self`] from the given URL query.
+    /// Extracts the base configuration from the given query.
     ///
     /// # Errors
     ///
-    /// Returns [`struct@Error`] if extraction fails.
+    /// Returns [`struct@Error`] if the base configuration can not be extracted.
     pub fn extract_from(query: &mut Query<'_>) -> Result<Self, Error> {
         let secret = query
             .remove(SECRET)
@@ -222,5 +224,19 @@ impl Base<'_> {
             .build();
 
         Ok(base)
+    }
+}
+
+/// Represents owned [`Base`].
+pub type Owned = Base<'static>;
+
+impl Base<'_> {
+    /// Converts [`Self`] into [`Owned`].
+    pub fn into_owned(self) -> Owned {
+        Owned::builder()
+            .secret(self.secret.into_owned())
+            .algorithm(self.algorithm)
+            .digits(self.digits)
+            .build()
     }
 }

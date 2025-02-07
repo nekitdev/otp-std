@@ -1,6 +1,6 @@
 [package]
 name = "otp-std"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["nekitdev <nekit@nekit.dev>"]
 edition = "2021"
 description = "Generating and checking one-time passwords."
@@ -58,3 +58,7 @@ default = ["generate-secret", "auth"]
 unsafe-length = []
 generate-secret = ["dep:rand"]
 auth = ["dep:url", "dep:urlencoding"]
+
+[package.metadata.docs.rs]
+features = ["serde", "sha2"]
+rustdoc-args = ["--cfg", "docsrs"]

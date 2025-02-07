@@ -21,7 +21,7 @@ Or by directly specifying it in the configuration like so:
 
 ```toml
 [dependencies]
-otp-std = "0.1.1"
+otp-std = "0.2.0"
 ```
 
 Alternatively, you can add it directly from the source:
@@ -62,10 +62,8 @@ use otp_std::{Base, Hotp, Secret};
 fn main() {
     let secret = Secret::decode("JEQDYMZAN5YGK3RAONXXK4TDMU").unwrap();
 
-    let counter = Counter::new(0);
-
     let base = Base::builder().secret(secret).build();
-    let mut hotp = Hotp::builder().base(base).counter(counter).build();
+    let mut hotp = Hotp::builder().base(base).build();
 
     let code = hotp.generate();
 
@@ -80,7 +78,7 @@ fn main() {
 ### TOTP
 
 ```rust
-use std::{thread::sleep, time::Duration};
+use std::thread::sleep;
 
 use otp_std::{Base, Secret, Totp};
 
@@ -90,11 +88,9 @@ fn main() {
     let base = Base::builder().secret(secret).build();
     let totp = Totp::builder().base(base).build();
 
-    let duration = Duration::from_secs(totp.period.get());
-
     let code = totp.generate();
 
-    sleep(duration);
+    sleep(totp.period.as_duration());
 
     let other = totp.generate();
 
@@ -106,13 +102,14 @@ fn main() {
 
 ### `generate-secret`
 
-The `generate-secret` feature enables secret generation:
+The `generate-secret` feature enables secret generation and implements
+the `Default` trait for `Secret` to randomly generate one:
 
 ```rust
-use otp_std::{Length, Secret};
+use otp_std::Secret;
 
 fn main() {
-    let secret = Secret::generate(Length::default());
+    let secret = Secret::default();
 
     println!("{secret}");
 }
@@ -128,10 +125,10 @@ To counter this, one can enable the `unsafe-length` feature:
 ```rust
 use otp_std::{Length, Secret};
 
-fn main() {
-    let length = Length::new(10).unwrap();
+const LENGTH: Length = Length::new(10).unwrap();
 
-    let secret = Secret::generate(length);
+fn main() {
+    let secret = Secret::generate(LENGTH);
 
     println!("{secret}");
 }
@@ -159,7 +156,7 @@ fn main() {
 
     let label = Label::builder().issuer(issuer).user(user).build();
 
-    let auth = Auth::totp(totp, label);
+    let auth = Auth::builder().otp(totp).label(label).build();
 
     let url = auth.build_url();
 
@@ -201,13 +198,15 @@ The `serde` feature, when enabled, implements `Serialize` and `Deserialize` for 
 by `otp-std`:
 
 ```rust
-use otp_std::{Base, Secret, Totp};
+use otp_std::{Base, Otp, Secret, Totp};
 use serde_json::{json, to_value};
 
 fn main() {
     let string = "JEQDYMZAN5YGK3RAONXXK4TDMU";
 
     let data = json!({
+        "type": "totp",
+        // the secret is required
         "secret": string,
         // all of the following fields are optional
         "algorithm": "SHA1",
@@ -221,7 +220,9 @@ fn main() {
     let base = Base::builder().secret(secret).build();
     let totp = Totp::builder().base(base).build();
 
-    let value = to_value(&totp).unwrap();
+    let otp = Otp::Totp(totp);
+
+    let value = to_value(&otp).unwrap();
 
     assert_eq!(value, data);
 }

@@ -1,13 +1,18 @@
 //! One-Time Password (OTP) digits.
 
-use std::{fmt, num::ParseIntError, str::FromStr};
+use std::{fmt, str::FromStr};
 
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use thiserror::Error;
+
+use crate::{
+    int,
+    macros::{const_result_ok, errors, quick_error},
+};
 
 /// The minimum digits value.
 pub const MIN: u8 = 6;
@@ -78,26 +83,38 @@ impl ParseError {
     }
 
     /// Constructs [`Self`] from [`int::ParseError`].
-    ///
-    /// [`int::ParseError`]: crate::int::ParseError
-    pub fn int(error: crate::int::ParseError, string: String) -> Self {
+    pub fn int(error: int::ParseError, string: String) -> Self {
         Self::new(error.into(), string)
-    }
-
-    /// Wraps [`ParseIntError`] into [`int::ParseError`] and constructs [`Self`] from it.
-    ///
-    /// [`int::ParseError`]: crate::int::ParseError
-    pub fn wrap_int(error: ParseIntError, string: String) -> Self {
-        Self::int(crate::int::ParseError(error), string)
     }
 }
 
 /// Represents the number of digits in OTPs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "u8", into = "u8"))]
 pub struct Digits {
     value: u8,
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Digits {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.get().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Digits {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = u8::deserialize(deserializer)?;
+
+        Self::new(value).map_err(de::Error::custom)
+    }
+}
+
+errors! {
+    Type = ParseError,
+    Hack = $,
+    digits_error => digits(error, string => to_owned),
+    int_error => int(error, string => to_owned),
 }
 
 impl FromStr for Digits {
@@ -106,15 +123,15 @@ impl FromStr for Digits {
     fn from_str(string: &str) -> Result<Self, Self::Err> {
         let value = string
             .parse()
-            .map_err(|error| Self::Err::wrap_int(error, string.to_owned()))?;
+            .map_err(|error| int_error!(int::wrap(error), string))?;
 
-        Self::new(value).map_err(|error| Self::Err::digits(error, string.to_owned()))
+        Self::new(value).map_err(|error| digits_error!(error, string))
     }
 }
 
 impl fmt::Display for Digits {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.value.fmt(formatter)
+        self.get().fmt(formatter)
     }
 }
 
@@ -128,7 +145,7 @@ impl TryFrom<u8> for Digits {
 
 impl From<Digits> for u8 {
     fn from(digits: Digits) -> Self {
-        digits.value
+        digits.get()
     }
 }
 
@@ -138,6 +155,12 @@ impl Default for Digits {
     }
 }
 
+errors! {
+    Type = Error,
+    Hack = $,
+    error => new(value),
+}
+
 impl Digits {
     /// Constructs [`Self`], if possible.
     ///
@@ -145,11 +168,16 @@ impl Digits {
     ///
     /// Returns [`struct@Error`] if the given value is less than [`MIN`] or greater than [`MAX`].
     pub const fn new(value: u8) -> Result<Self, Error> {
-        if value < MIN || value > MAX {
-            Err(Error::new(value))
-        } else {
-            Ok(unsafe { Self::new_unchecked(value) })
-        }
+        quick_error!(value < MIN || value > MAX => error!(value));
+
+        Ok(unsafe { Self::new_unchecked(value) })
+    }
+
+    /// Similar to [`new`], but the error is discarded.
+    ///
+    /// [`new`]: Self::new
+    pub const fn new_ok(value: u8) -> Option<Self> {
+        const_result_ok!(Self::new(value))
     }
 
     /// Constructs [`Self`] without checking the given value.
@@ -162,22 +190,27 @@ impl Digits {
     }
 
     /// The minimum [`Self`] value.
-    pub const MIN: Self = unsafe { Self::new_unchecked(MIN) };
+    pub const MIN: Self = Self::new_ok(MIN).unwrap();
 
     /// The maximum [`Self`] value.
-    pub const MAX: Self = unsafe { Self::new_unchecked(MAX) };
+    pub const MAX: Self = Self::new_ok(MAX).unwrap();
 
     /// The default [`Self`] value.
-    pub const DEFAULT: Self = unsafe { Self::new_unchecked(DEFAULT) };
+    pub const DEFAULT: Self = Self::new_ok(DEFAULT).unwrap();
 
-    /// Returns the value of wrapped in [`Self`] as [`usize`].
+    /// Returns the value wrapped in [`Self`] as [`usize`].
     pub const fn count(self) -> usize {
-        self.value as usize
+        self.get() as usize
     }
 
-    /// Raises `10` to the power of the value of wrapped in [`Self`].
+    /// Returns the value wrapped in [`Self`].
+    pub const fn get(self) -> u8 {
+        self.value
+    }
+
+    /// Raises `10` to the power of the value wrapped in [`Self`].
     pub const fn power(self) -> u32 {
-        10u32.pow(self.value as u32)
+        10u32.pow(self.get() as u32)
     }
 
     /// Formats the given code, padding it to the length returned from [`count`].
@@ -185,5 +218,38 @@ impl Digits {
     /// [`count`]: Self::count
     pub fn string(self, code: u32) -> String {
         format!("{:01$}", code, self.count())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Digits, DEFAULT, MAX, MIN};
+
+    #[test]
+    fn consistency() {
+        assert_eq!(Digits::MIN.get(), MIN);
+        assert_eq!(Digits::MAX.get(), MAX);
+
+        assert_eq!(Digits::DEFAULT.get(), DEFAULT);
+    }
+
+    fn recheck(value: u8) -> bool {
+        value >= MIN && value <= MAX
+    }
+
+    #[test]
+    fn correctness() {
+        for value in u8::MIN..=u8::MAX {
+            let result = Digits::new(value);
+
+            // recheck and assert correctness
+            assert_eq!(recheck(value), result.is_ok());
+
+            // extract and assert equality
+            match result {
+                Ok(digits) => assert_eq!(digits.get(), value),
+                Err(error) => assert_eq!(error.value, value),
+            }
+        }
     }
 }

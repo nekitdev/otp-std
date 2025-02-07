@@ -1,8 +1,6 @@
-//! One-Time Password (OTP) configuration enums.
+//! One-Time Password (OTP) enums.
 //!
 //! The [`Otp`] enum contains [`Hotp`] and [`Totp`] as its variants.
-
-use std::{fmt, str::FromStr};
 
 use miette::Diagnostic;
 
@@ -11,17 +9,18 @@ use serde::{Deserialize, Serialize};
 
 use thiserror::Error;
 
-#[cfg(feature = "auth")]
-use url::Url;
-
-use crate::{base::Base, hotp::Hotp, totp::Totp};
+use crate::{base::Base, hotp::Hotp, otp::type_of::Type, totp::Totp};
 
 #[cfg(feature = "auth")]
-use crate::{auth::query::Query, hotp, totp};
+use crate::{
+    auth::{query::Query, url::Url},
+    hotp, totp,
+};
 
 /// Represents either [`Hotp`] or [`Totp`] configuration.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", rename_all = "snake_case"))]
 pub enum Otp<'o> {
     /// HOTP configuration.
     Hotp(Hotp<'o>),
@@ -109,7 +108,7 @@ impl Error {
 
 #[cfg(feature = "auth")]
 impl Otp<'_> {
-    /// Applies the OTP configuration to the given URL.
+    /// Applies [`Self`] to the given [`Url`].
     pub fn query_for(&self, url: &mut Url) {
         match self {
             Self::Hotp(hotp) => hotp.query_for(url),
@@ -117,16 +116,17 @@ impl Otp<'_> {
         }
     }
 
-    /// Extracts the OTP configuration from the given URL of the given type.
+    /// Extracts [`Self`] from the given [`Query`].
     ///
     /// # Errors
     ///
-    /// Returns [`struct@Error`] if the OTP configuration could not be extracted.
+    /// Returns [`struct@Error`] when the OTP configuration can not be extracted.
     pub fn extract_from(query: &mut Query<'_>, type_of: Type) -> Result<Self, Error> {
         match type_of {
             Type::Hotp => Hotp::extract_from(query)
                 .map(Self::Hotp)
                 .map_err(Error::hotp),
+
             Type::Totp => Totp::extract_from(query)
                 .map(Self::Totp)
                 .map_err(Error::totp),
@@ -134,66 +134,27 @@ impl Otp<'_> {
     }
 }
 
-/// Represents types of OTPs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
-pub enum Type {
-    /// HOTP type.
-    Hotp,
-    /// TOTP type.
-    Totp,
+impl<'h> From<Hotp<'h>> for Otp<'h> {
+    fn from(hotp: Hotp<'h>) -> Self {
+        Self::Hotp(hotp)
+    }
 }
 
-/// The `hotp` literal.
-pub const HOTP: &str = "hotp";
+impl<'t> From<Totp<'t>> for Otp<'t> {
+    fn from(totp: Totp<'t>) -> Self {
+        Self::Totp(totp)
+    }
+}
 
-/// The `totp` literal.
-pub const TOTP: &str = "totp";
+/// Represents owned [`Otp`].
+pub type Owned = Otp<'static>;
 
-impl Type {
-    /// Returns the static string representation of this type.
-    pub const fn static_str(&self) -> &'static str {
+impl Otp<'_> {
+    /// Converts [`Self`] into [`Owned`].
+    pub fn into_owned(self) -> Owned {
         match self {
-            Self::Hotp => HOTP,
-            Self::Totp => TOTP,
-        }
-    }
-}
-
-impl fmt::Display for Type {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.static_str().fmt(formatter)
-    }
-}
-
-/// Represents errors that can occur when parsing [`Type`].
-#[derive(Debug, Error, Diagnostic)]
-#[error("failed to parse `{string}` into type; expected either `{HOTP}` or `{TOTP}`")]
-#[diagnostic(
-    code(otp_std::otp::parse_type),
-    help("see the report for more information")
-)]
-pub struct ParseTypeError {
-    /// The string that could not be parsed.
-    pub string: String,
-}
-
-impl ParseTypeError {
-    /// Constructs [`Self`].
-    pub const fn new(string: String) -> Self {
-        Self { string }
-    }
-}
-
-impl FromStr for Type {
-    type Err = ParseTypeError;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        match string {
-            HOTP => Ok(Self::Hotp),
-            TOTP => Ok(Self::Totp),
-            _ => Err(Self::Err::new(string.to_owned())),
+            Self::Hotp(hotp) => Owned::Hotp(hotp.into_owned()),
+            Self::Totp(totp) => Owned::Totp(totp.into_owned()),
         }
     }
 }

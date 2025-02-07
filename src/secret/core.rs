@@ -15,6 +15,9 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use thiserror::Error;
 
+#[cfg(feature = "serde")]
+use crate::macros::deserialize_str;
+
 use crate::secret::{
     encoding,
     length::{self, Length},
@@ -32,16 +35,14 @@ pub struct Secret<'s> {
 #[cfg(feature = "serde")]
 impl Serialize for Secret<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let string = self.encode();
-
-        serializer.serialize_str(&string)
+        self.encode().serialize(serializer)
     }
 }
 
 #[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for Secret<'_> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let string = String::deserialize(deserializer)?;
+        let string = deserialize_str!(deserializer)?;
 
         Self::decode(string).map_err(de::Error::custom)
     }
@@ -55,7 +56,7 @@ impl fmt::Display for Secret<'_> {
 
 impl PartialEq for Secret<'_> {
     fn eq(&self, other: &Self) -> bool {
-        constant_time_eq(self.value.as_ref(), other.value.as_ref())
+        constant_time_eq(self.as_bytes(), other.as_bytes())
     }
 }
 
@@ -63,13 +64,13 @@ impl Eq for Secret<'_> {}
 
 impl Hash for Secret<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.value.hash(state);
+        self.as_bytes().hash(state);
     }
 }
 
 impl AsRef<[u8]> for Secret<'_> {
     fn as_ref(&self) -> &[u8] {
-        self.value.as_ref()
+        self.as_bytes()
     }
 }
 
@@ -166,9 +167,19 @@ impl<'s> Secret<'s> {
     pub const unsafe fn owned_unchecked(value: Vec<u8>) -> Self {
         Self::new_unchecked(Cow::Owned(value))
     }
+
+    /// Consumes [`Self`] and returns the contained secret value.
+    pub fn get(self) -> Cow<'s, [u8]> {
+        self.value
+    }
 }
 
 impl Secret<'_> {
+    /// Returns the secret value as bytes.
+    pub fn as_bytes(&self) -> &[u8] {
+        self.value.as_ref()
+    }
+
     /// Decodes [`Self`] from the given string.
     ///
     /// # Errors
@@ -185,7 +196,7 @@ impl Secret<'_> {
 
     /// Encodes [`Self`] into [`String`].
     pub fn encode(&self) -> String {
-        encoding::encode(self.value.as_ref())
+        encoding::encode(self.as_bytes())
     }
 }
 
@@ -202,5 +213,28 @@ impl Secret<'_> {
     /// Generates secrets of the given length.
     pub fn generate(length: Length) -> Self {
         unsafe { Self::owned_unchecked(generate(length)) }
+    }
+
+    /// Generates secrets of default length.
+    pub fn generate_default() -> Self {
+        Self::generate(Length::default())
+    }
+}
+
+#[cfg(feature = "generate-secret")]
+impl Default for Secret<'_> {
+    fn default() -> Self {
+        Self::generate_default()
+    }
+}
+
+/// Represents owned [`Secret`].
+pub type Owned = Secret<'static>;
+
+impl Secret<'_> {
+    /// Converts [`Self`] into [`Owned`].
+    pub fn into_owned(self) -> Owned {
+        // SAFETY: the contained secret is valid
+        unsafe { Owned::owned_unchecked(self.value.into_owned()) }
     }
 }

@@ -1,13 +1,18 @@
-//! Time periods.
+//! Time-based One-Time Password (TOTP) periods.
 
-use std::{fmt, num::ParseIntError, str::FromStr};
+use std::{fmt, str::FromStr, time::Duration};
 
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use thiserror::Error;
+
+use crate::{
+    int,
+    macros::{const_result_ok, errors, quick_error},
+};
 
 /// The minimum period value.
 pub const MIN: u64 = 1;
@@ -44,7 +49,7 @@ pub enum ParseErrorSource {
     /// Invalid period value.
     Period(#[from] Error),
     /// Integer parse error.
-    Int(#[from] crate::int::ParseError),
+    Int(#[from] int::ParseError),
 }
 
 /// Represents errors that occur when parsing [`Period`] values.
@@ -75,43 +80,55 @@ impl ParseError {
     }
 
     /// Constructs [`Self`] from [`int::ParseError`].
-    ///
-    /// [`int::ParseError`]: crate::int::ParseError
-    pub fn int(error: crate::int::ParseError, string: String) -> Self {
+    pub fn int(error: int::ParseError, string: String) -> Self {
         Self::new(error.into(), string)
-    }
-
-    /// Wraps [`ParseIntError`] into [`int::ParseError`] and constructs [`Self`] from it.
-    ///
-    /// [`int::ParseError`]: crate::int::ParseError
-    pub fn wrap_int(error: ParseIntError, string: String) -> Self {
-        Self::int(crate::int::ParseError(error), string)
     }
 }
 
 /// Represents time periods.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "u64", into = "u64"))]
 pub struct Period {
     value: u64,
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Period {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.get().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Period {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = u64::deserialize(deserializer)?;
+
+        Self::new(value).map_err(de::Error::custom)
+    }
 }
 
 impl FromStr for Period {
     type Err = ParseError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
+        errors! {
+            Type = Self::Err,
+            Hack = $,
+            int_error => int(error, string => to_owned),
+            period_error => period(error, string => to_owned),
+        }
+
         let value = string
             .parse()
-            .map_err(|error| Self::Err::wrap_int(error, string.to_owned()))?;
+            .map_err(|error| int_error!(int::wrap(error), string))?;
 
-        Self::new(value).map_err(|error| Self::Err::period(error, string.to_owned()))
+        Self::new(value).map_err(|error| period_error!(error, string))
     }
 }
 
 impl fmt::Display for Period {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.value.fmt(formatter)
+        self.get().fmt(formatter)
     }
 }
 
@@ -125,7 +142,7 @@ impl TryFrom<u64> for Period {
 
 impl From<Period> for u64 {
     fn from(period: Period) -> Self {
-        period.value
+        period.get()
     }
 }
 
@@ -135,6 +152,12 @@ impl Default for Period {
     }
 }
 
+errors! {
+    Type = Error,
+    Hack = $,
+    error => new(value),
+}
+
 impl Period {
     /// Constructs [`Self`], if possible.
     ///
@@ -142,11 +165,16 @@ impl Period {
     ///
     /// Returns [`struct@Error`] if the given value is less than [`MIN`].
     pub const fn new(value: u64) -> Result<Self, Error> {
-        if value < MIN {
-            Err(Error::new(value))
-        } else {
-            Ok(unsafe { Self::new_unchecked(value) })
-        }
+        quick_error!(value < MIN => error!(value));
+
+        Ok(unsafe { Self::new_unchecked(value) })
+    }
+
+    /// Similar to [`new`], but the error is discarded.
+    ///
+    /// [`new`]: Self::new
+    pub const fn new_ok(value: u64) -> Option<Self> {
+        const_result_ok!(Self::new(value))
     }
 
     /// Constructs [`Self`] without checking the given value.
@@ -163,9 +191,14 @@ impl Period {
         self.value
     }
 
+    /// Returns the period as [`Duration`].
+    pub const fn as_duration(self) -> Duration {
+        Duration::from_secs(self.get())
+    }
+
     /// The minimum [`Self`] value.
-    pub const MIN: Self = unsafe { Self::new_unchecked(MIN) };
+    pub const MIN: Self = Self::new_ok(MIN).unwrap();
 
     /// The default [`Self`] value.
-    pub const DEFAULT: Self = unsafe { Self::new_unchecked(DEFAULT) };
+    pub const DEFAULT: Self = Self::new_ok(DEFAULT).unwrap();
 }
