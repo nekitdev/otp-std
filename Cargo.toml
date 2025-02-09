@@ -59,6 +59,10 @@ unsafe-length = []
 generate-secret = ["dep:rand"]
 auth = ["dep:url", "dep:urlencoding"]
 
+[dev-dependencies.otp-std]
+path = "."
+features = ["sha2"]
+
 [package.metadata.docs.rs]
 features = ["serde", "sha2"]
 rustdoc-args = ["--cfg", "docsrs"]

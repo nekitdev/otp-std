@@ -17,7 +17,7 @@ use crate::{
         url::{self, Url},
         utf8,
     },
-    macros::errors,
+    macros::{errors, quick_check},
 };
 
 /// Represents errors that occur when the label is empty.
@@ -130,13 +130,17 @@ impl fmt::Display for Label<'_> {
     }
 }
 
+errors! {
+    Type = ParseError,
+    Hack = $,
+    empty_error => new_empty(),
+}
+
 impl FromStr for Label<'_> {
     type Err = ParseError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        if string.is_empty() {
-            return Err(Self::Err::new_empty());
-        }
+        quick_check!(string.is_empty() => empty_error!());
 
         if let Some((issuer_string, user_string)) = string.split_once(SEPARATOR) {
             let issuer = issuer_string.parse().map_err(Self::Err::part)?;

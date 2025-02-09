@@ -9,7 +9,7 @@ pub mod url;
 pub mod utf8;
 
 pub use core::{Auth, Owned};
-pub use label::Label;
-pub use part::Part;
+pub use label::{Label, Owned as OwnedLabel};
+pub use part::{Owned as OwnedPart, Part};
 pub use scheme::SCHEME;
 pub use url::Url;

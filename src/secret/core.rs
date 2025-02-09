@@ -120,7 +120,9 @@ impl<'s> Secret<'s> {
     ///
     /// Returns [`length::Error`] if the secret has an unsafe length.
     pub fn new(value: Cow<'s, [u8]>) -> Result<Self, length::Error> {
-        Length::new(value.len()).map(|_| unsafe { Self::new_unchecked(value) })
+        Length::check(value.len())?;
+
+        Ok(unsafe { Self::new_unchecked(value) })
     }
 
     /// Constructs [`Self`] without checking the secret length.
@@ -235,6 +237,6 @@ impl Secret<'_> {
     /// Converts [`Self`] into [`Owned`].
     pub fn into_owned(self) -> Owned {
         // SAFETY: the contained secret is valid
-        unsafe { Owned::owned_unchecked(self.value.into_owned()) }
+        unsafe { Owned::owned_unchecked(self.get().into_owned()) }
     }
 }

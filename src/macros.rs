@@ -4,6 +4,19 @@ pub(crate) mod import {
     pub use std::{option::Option, result::Result};
 }
 
+macro_rules! const_try {
+    ($result: expr) => {
+        match $result {
+            $crate::macros::import::Result::Ok(value) => value,
+            $crate::macros::import::Result::Err(error) => {
+                return $crate::macros::import::Result::Err(error);
+            }
+        }
+    };
+}
+
+pub(crate) use const_try;
+
 macro_rules! const_result_ok {
     ($result: expr) => {
         match $result {
@@ -42,7 +55,7 @@ macro_rules! deserialize_str {
 #[cfg(feature = "serde")]
 pub(crate) use deserialize_str;
 
-macro_rules! quick_error {
+macro_rules! quick_check {
     ($condition: expr => $error: expr) => {
         if $condition {
             return $crate::macros::import::Result::Err($error);
@@ -50,7 +63,7 @@ macro_rules! quick_error {
     };
 }
 
-pub(crate) use quick_error;
+pub(crate) use quick_check;
 
 macro_rules! errors {
     (

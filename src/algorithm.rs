@@ -62,6 +62,24 @@ pub enum Algorithm {
     Sha512,
 }
 
+impl Algorithm {
+    /// The amount of algorithms available.
+    #[cfg(not(feature = "sha2"))]
+    pub const COUNT: usize = 1;
+
+    /// The array of algorithms available.
+    #[cfg(not(feature = "sha2"))]
+    pub const ARRAY: [Self; Self::COUNT] = [Self::Sha1];
+
+    /// The amount of algorithms available.
+    #[cfg(feature = "sha2")]
+    pub const COUNT: usize = 3;
+
+    /// The array of algorithms available.
+    #[cfg(feature = "sha2")]
+    pub const ARRAY: [Self; Self::COUNT] = [Self::Sha1, Self::Sha256, Self::Sha512];
+}
+
 /// The `SHA1` literal.
 pub const SHA1: &str = "SHA1";
 

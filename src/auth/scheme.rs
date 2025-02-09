@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::{
     auth::url::Url,
-    macros::{errors, quick_error},
+    macros::{errors, quick_check},
 };
 
 /// The scheme used in OTP URLs.
@@ -42,7 +42,7 @@ errors! {
 /// Returns [`struct@Error`] when the scheme does not match [`SCHEME`].
 pub fn check<S: AsRef<str>>(scheme: S) -> Result<(), Error> {
     fn check_inner(scheme: &str) -> Result<(), Error> {
-        quick_error!(scheme != SCHEME => error!(scheme));
+        quick_check!(scheme != SCHEME => error!(scheme));
 
         Ok(())
     }

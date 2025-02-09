@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use crate::{
     int,
-    macros::{const_result_ok, errors, quick_error},
+    macros::{const_result_ok, const_try, errors, quick_check},
 };
 
 /// The minimum period value.
@@ -107,17 +107,17 @@ impl<'de> Deserialize<'de> for Period {
     }
 }
 
+errors! {
+    Type = ParseError,
+    Hack = $,
+    int_error => int(error, string => to_owned),
+    period_error => period(error, string => to_owned),
+}
+
 impl FromStr for Period {
     type Err = ParseError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        errors! {
-            Type = Self::Err,
-            Hack = $,
-            int_error => int(error, string => to_owned),
-            period_error => period(error, string => to_owned),
-        }
-
         let value = string
             .parse()
             .map_err(|error| int_error!(int::wrap(error), string))?;
@@ -163,9 +163,11 @@ impl Period {
     ///
     /// # Errors
     ///
-    /// Returns [`struct@Error`] if the given value is less than [`MIN`].
+    /// See [`check`] for more information.
+    ///
+    /// [`check`]: Self::check
     pub const fn new(value: u64) -> Result<Self, Error> {
-        quick_error!(value < MIN => error!(value));
+        const_try!(Self::check(value));
 
         Ok(unsafe { Self::new_unchecked(value) })
     }
@@ -177,11 +179,26 @@ impl Period {
         const_result_ok!(Self::new(value))
     }
 
+    /// Checks if the given value is valid for [`Self`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`struct@Error`] if the given value is less than [`MIN`].
+    pub const fn check(value: u64) -> Result<(), Error> {
+        quick_check!(value < MIN => error!(value));
+
+        Ok(())
+    }
+
     /// Constructs [`Self`] without checking the given value.
     ///
     /// # Safety
     ///
     /// The given value must be at least [`MIN`].
+    ///
+    /// This invariant can be checked using [`check`].
+    ///
+    /// [`check`]: Self::check
     pub const unsafe fn new_unchecked(value: u64) -> Self {
         Self { value }
     }

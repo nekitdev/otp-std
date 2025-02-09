@@ -1,6 +1,6 @@
 //! Time-based One-Time Password (TOTP) skews.
 
-use std::{fmt, iter::once, num::ParseIntError, str::FromStr};
+use std::{fmt, iter::once, str::FromStr};
 
 use miette::Diagnostic;
 
@@ -38,11 +38,6 @@ impl Error {
     pub const fn new(source: ParseError, string: String) -> Self {
         Self { source, string }
     }
-
-    /// Wraps [`ParseIntError`] into [`ParseError`] and constructs [`Self`].
-    pub const fn new_wrap(error: ParseIntError, string: String) -> Self {
-        Self::new(ParseError(error), string)
-    }
 }
 
 /// Represents value skews (see [`apply`] for more information).
@@ -55,16 +50,16 @@ pub struct Skew {
     value: u64,
 }
 
+errors! {
+    Type = Self::Err,
+    Hack = $,
+    error => new(error, string => to_owned),
+}
+
 impl FromStr for Skew {
     type Err = Error;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        errors! {
-            Type = Self::Err,
-            Hack = $,
-            error => new(error, string => to_owned),
-        }
-
         let value = string
             .parse()
             .map_err(|error| error!(int::wrap(error), string))?;

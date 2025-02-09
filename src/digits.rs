@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use crate::{
     int,
-    macros::{const_result_ok, errors, quick_error},
+    macros::{const_result_ok, const_try, errors, quick_check},
 };
 
 /// The minimum digits value.
@@ -52,7 +52,7 @@ pub enum ParseErrorSource {
     /// Invalid digits value.
     Digits(#[from] Error),
     /// Integer parse error.
-    Int(#[from] crate::int::ParseError),
+    Int(#[from] int::ParseError),
 }
 
 /// Represents errors that occur when parsing [`Digits`] values.
@@ -166,9 +166,11 @@ impl Digits {
     ///
     /// # Errors
     ///
-    /// Returns [`struct@Error`] if the given value is less than [`MIN`] or greater than [`MAX`].
+    /// See [`check`] for more information.
+    ///
+    /// [`check`]: Self::check
     pub const fn new(value: u8) -> Result<Self, Error> {
-        quick_error!(value < MIN || value > MAX => error!(value));
+        const_try!(Self::check(value));
 
         Ok(unsafe { Self::new_unchecked(value) })
     }
@@ -180,11 +182,26 @@ impl Digits {
         const_result_ok!(Self::new(value))
     }
 
+    /// Checks if the provided value is valid for [`Self`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`struct@Error`] if the given value is less than [`MIN`] or greater than [`MAX`].
+    pub const fn check(value: u8) -> Result<(), Error> {
+        quick_check!(value < MIN || value > MAX => error!(value));
+
+        Ok(())
+    }
+
     /// Constructs [`Self`] without checking the given value.
     ///
     /// # Safety
     ///
     /// The value must be greater than or equal to [`MIN`] and less than or equal to [`MAX`].
+    ///
+    /// This invariant can be checked using [`check`].
+    ///
+    /// [`check`]: Self::check
     pub const unsafe fn new_unchecked(value: u8) -> Self {
         Self { value }
     }
@@ -218,38 +235,5 @@ impl Digits {
     /// [`count`]: Self::count
     pub fn string(self, code: u32) -> String {
         format!("{:01$}", code, self.count())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Digits, DEFAULT, MAX, MIN};
-
-    #[test]
-    fn consistency() {
-        assert_eq!(Digits::MIN.get(), MIN);
-        assert_eq!(Digits::MAX.get(), MAX);
-
-        assert_eq!(Digits::DEFAULT.get(), DEFAULT);
-    }
-
-    fn recheck(value: u8) -> bool {
-        value >= MIN && value <= MAX
-    }
-
-    #[test]
-    fn correctness() {
-        for value in u8::MIN..=u8::MAX {
-            let result = Digits::new(value);
-
-            // recheck and assert correctness
-            assert_eq!(recheck(value), result.is_ok());
-
-            // extract and assert equality
-            match result {
-                Ok(digits) => assert_eq!(digits.get(), value),
-                Err(error) => assert_eq!(error.value, value),
-            }
-        }
     }
 }

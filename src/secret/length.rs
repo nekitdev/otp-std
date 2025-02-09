@@ -3,28 +3,27 @@
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use thiserror::Error;
 
-use crate::{algorithm::Algorithm, macros::const_result_ok};
+#[cfg(not(feature = "unsafe-length"))]
+use crate::macros::{errors, quick_check};
 
-use crate::macros::{errors, quick_error};
+use crate::{
+    algorithm::Algorithm,
+    macros::{const_result_ok, const_try},
+};
 
 /// The default (and recommended) secret length.
 pub const DEFAULT: usize = 20;
-
-/// The minimum allowed secret length.
-#[cfg(feature = "unsafe-length")]
-pub const MIN: usize = 0;
 
 /// The minimum allowed secret length.
 #[cfg(not(feature = "unsafe-length"))]
 pub const MIN: usize = 16;
 
 /// Represents errors returned when unsafe lengths are used.
-///
-/// Note that this error is never returned when the `unsafe-length` feature is enabled.
+#[cfg(not(feature = "unsafe-length"))]
 #[derive(Debug, Error, Diagnostic)]
 #[error("expected length of at least `{MIN}`, got `{length}`")]
 #[diagnostic(
@@ -36,6 +35,7 @@ pub struct Error {
     pub length: usize,
 }
 
+#[cfg(not(feature = "unsafe-length"))]
 impl Error {
     /// Constructs [`Self`].
     pub const fn new(length: usize) -> Self {
@@ -43,12 +43,31 @@ impl Error {
     }
 }
 
+/// Represents the absence of errors returned when the `unsafe-length` feature is enabled.
+#[cfg(feature = "unsafe-length")]
+#[derive(Debug, Error, Diagnostic)]
+pub enum Error {}
+
 /// Represents OTP secret lengths.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(try_from = "usize", into = "usize"))]
 pub struct Length {
     value: usize,
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Length {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.get().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Length {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = usize::deserialize(deserializer)?;
+
+        Self::new(value).map_err(de::Error::custom)
+    }
 }
 
 impl TryFrom<usize> for Length {
@@ -71,6 +90,7 @@ impl Default for Length {
     }
 }
 
+#[cfg(not(feature = "unsafe-length"))]
 errors! {
     Type = Error,
     Hack = $,
@@ -82,10 +102,11 @@ impl Length {
     ///
     /// # Errors
     ///
-    /// This function never fails when the `unsafe-length` feature is enabled.
-    /// Otherwise, it returns an error containing the unsafe value provided.
+    /// See [`check`] for more information.
+    ///
+    /// [`check`]: Self::check
     pub const fn new(value: usize) -> Result<Self, Error> {
-        quick_error!(value < MIN => error!(value));
+        const_try!(Self::check(value));
 
         Ok(unsafe { Self::new_unchecked(value) })
     }
@@ -95,6 +116,20 @@ impl Length {
     /// [`new`]: Self::new
     pub const fn new_ok(value: usize) -> Option<Self> {
         const_result_ok!(Self::new(value))
+    }
+
+    /// Checks if the provided value is valid for [`Self`].
+    ///
+    /// # Errors
+    ///
+    /// This function never fails when the `unsafe-length` feature is enabled.
+    /// Otherwise, it returns an error containing the unsafe value provided.
+    #[allow(unused_variables)]
+    pub const fn check(value: usize) -> Result<(), Error> {
+        #[cfg(not(feature = "unsafe-length"))]
+        quick_check!(value < MIN => error!(value));
+
+        Ok(())
     }
 
     /// Constructs [`Self`] without checking the length.
@@ -119,6 +154,7 @@ impl Length {
     }
 
     /// The minimum [`Self`] value.
+    #[cfg(not(feature = "unsafe-length"))]
     pub const MIN: Self = Self::new_ok(MIN).unwrap();
 
     /// The default [`Self`] value.

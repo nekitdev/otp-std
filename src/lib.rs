@@ -14,7 +14,7 @@ pub use algorithm::Algorithm;
 pub use counter::Counter;
 pub use digits::Digits;
 pub use period::Period;
-pub use secret::{Length, Secret};
+pub use secret::{Length, Owned as OwnedSecret, Secret};
 pub use skew::Skew;
 
 pub mod time;
@@ -27,18 +27,18 @@ pub mod base;
 pub mod hotp;
 pub mod totp;
 
-pub use base::Base;
-pub use hotp::Hotp;
-pub use totp::Totp;
+pub use base::{Base, Owned as OwnedBase};
+pub use hotp::{Hotp, Owned as OwnedHotp};
+pub use totp::{Owned as OwnedTotp, Totp};
 
 pub mod otp;
 
-pub use otp::{Otp, Type};
+pub use otp::{Otp, Owned as OwnedOtp, Type};
 
 #[cfg(feature = "auth")]
 pub mod auth;
 
 #[cfg(feature = "auth")]
-pub use auth::{Auth, Label, Part};
+pub use auth::{Auth, Label, Owned as OwnedAuth, OwnedLabel, OwnedPart, Part};
 
 pub mod macros;
