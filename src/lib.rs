@@ -1,4 +1,4 @@
-//! Generating and checking one-time passwords.
+//! Generating and verifying One-Time Passwords.
 
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]

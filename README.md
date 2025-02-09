@@ -5,7 +5,7 @@
 [![Downloads][Downloads Badge]][Crate]
 [![Test][Test Badge]][Actions]
 
-> *Generating and checking one-time passwords.*
+> *Generating and verifying One-Time Passwords.*
 
 ## Installation
 
