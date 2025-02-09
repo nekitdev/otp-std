@@ -137,6 +137,10 @@ impl Length {
     /// # Safety
     ///
     /// The caller must ensure that the given value is valid for [`Self`].
+    ///
+    /// This invariant can be checked using [`check`].
+    ///
+    /// [`check`]: Self::check
     pub const unsafe fn new_unchecked(value: usize) -> Self {
         Self { value }
     }
