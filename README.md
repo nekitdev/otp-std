@@ -170,7 +170,7 @@ fn main() {
 
 ### `sha2`
 
-The default algorithm used by OTP is `SHA1`. In order to use `SHA256` or `SHA512`, one can enable
+The default algorithm used by OTP is SHA-1. In order to use SHA-256 or SHA-512, one can enable
 the `sha2` feature:
 
 ```rust
