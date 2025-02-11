@@ -234,6 +234,6 @@ impl Digits {
     ///
     /// [`count`]: Self::count
     pub fn string(self, code: u32) -> String {
-        format!("{code:0$}", self.count())
+        format!("{code:0count$}", count = self.count())
     }
 }
