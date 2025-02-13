@@ -2,6 +2,10 @@
 
 <!-- changelogging: start -->
 
+## [0.2.3](https://github.com/nekitdev/otp-std/tree/v0.2.3) (2025-02-13)
+
+No significant changes.
+
 ## [0.2.2](https://github.com/nekitdev/otp-std/tree/v0.2.2) (2025-02-13)
 
 No significant changes.
