@@ -21,7 +21,7 @@ Or by directly specifying it in the configuration like so:
 
 ```toml
 [dependencies]
-otp-std = "0.2.2"
+otp-std = "0.2.3"
 ```
 
 Alternatively, you can add it directly from the source:

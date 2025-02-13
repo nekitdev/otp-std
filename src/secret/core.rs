@@ -119,6 +119,7 @@ impl<'s> Secret<'s> {
     pub fn new(value: Cow<'s, [u8]>) -> Result<Self, length::Error> {
         Length::check(value.len())?;
 
+        // SAFETY: the value has valid length for `Self`
         Ok(unsafe { Self::new_unchecked(value) })
     }
 
@@ -233,7 +234,7 @@ pub type Owned = Secret<'static>;
 impl Secret<'_> {
     /// Converts [`Self`] into [`Owned`].
     pub fn into_owned(self) -> Owned {
-        // SAFETY: the contained secret is valid
+        // SAFETY: the contained secret is valid (by construction)
         unsafe { Owned::owned_unchecked(self.get().into_owned()) }
     }
 }

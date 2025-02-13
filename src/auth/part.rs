@@ -143,6 +143,7 @@ impl FromStr for Part<'_> {
     fn from_str(string: &str) -> Result<Self, Self::Err> {
         Self::check(string)?;
 
+        // SAFETY: the string was checked to be valid for `Self`
         Ok(unsafe { Self::owned_unchecked(string.to_owned()) })
     }
 }
@@ -163,6 +164,7 @@ impl<'p> Part<'p> {
     pub fn new(string: Cow<'p, str>) -> Result<Self, Error> {
         Self::check(string.as_ref())?;
 
+        // SAFETY: the string was checked to be valid for `Self`
         Ok(unsafe { Self::new_unchecked(string) })
     }
 
@@ -207,7 +209,8 @@ impl<'p> Part<'p> {
     ///
     /// The given string must be non-empty and must not contain the [`SEPARATOR`].
     pub const unsafe fn owned_unchecked(string: String) -> Self {
-        Self::new_unchecked(Cow::Owned(string))
+        // SAFETY: the caller must ensure the string is valid
+        unsafe { Self::new_unchecked(Cow::Owned(string)) }
     }
 
     /// Constructs [`Self`] from borrowed data, if possible.
@@ -225,7 +228,8 @@ impl<'p> Part<'p> {
     ///
     /// The given string must be non-empty and must not contain the [`SEPARATOR`].
     pub const unsafe fn borrowed_unchecked(string: &'p str) -> Self {
-        Self::new_unchecked(Cow::Borrowed(string))
+        // SAFETY: the caller must ensure the string is valid
+        unsafe { Self::new_unchecked(Cow::Borrowed(string)) }
     }
 
     /// Consumes [`Self`] and returns the contained string.
@@ -304,7 +308,7 @@ pub type Owned = Part<'static>;
 impl Part<'_> {
     /// Converts [`Self`] into [`Owned`].
     pub fn into_owned(self) -> Owned {
-        // SAFETY: the contained string is valid
+        // SAFETY: the contained string is valid (by construction)
         unsafe { Owned::owned_unchecked(self.get().into_owned()) }
     }
 }

@@ -318,7 +318,7 @@ impl Totp<'_> {
 
         let period = self.period.to_string();
 
-        url.query_pairs_mut().append_pair(PERIOD, &period);
+        url.query_pairs_mut().append_pair(PERIOD, period.as_str());
     }
 
     /// Extracts the TOTP configuration from the given query.

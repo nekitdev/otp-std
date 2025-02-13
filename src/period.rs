@@ -168,6 +168,7 @@ impl Period {
     pub const fn new(value: u64) -> Result<Self, Error> {
         const_try!(Self::check(value));
 
+        // SAFETY: the value is in the valid range for `Self`
         Ok(unsafe { Self::new_unchecked(value) })
     }
 

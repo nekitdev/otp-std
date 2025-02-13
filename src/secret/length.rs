@@ -110,6 +110,7 @@ impl Length {
     pub const fn new(value: usize) -> Result<Self, Error> {
         const_try!(Self::check(value));
 
+        // SAFETY: the value is in the valid range for `Self`
         Ok(unsafe { Self::new_unchecked(value) })
     }
 
