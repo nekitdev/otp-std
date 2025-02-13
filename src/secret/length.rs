@@ -1,5 +1,10 @@
 //! Secret lengths.
 
+use const_macros::{const_ok, const_try};
+
+#[cfg(not(feature = "unsafe-length"))]
+use const_macros::const_early;
+
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
@@ -8,12 +13,9 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use thiserror::Error;
 
 #[cfg(not(feature = "unsafe-length"))]
-use crate::macros::{errors, quick_check};
+use crate::macros::errors;
 
-use crate::{
-    algorithm::Algorithm,
-    macros::{const_result_ok, const_try},
-};
+use crate::algorithm::Algorithm;
 
 /// The default (and recommended) secret length.
 pub const DEFAULT: usize = 20;
@@ -115,7 +117,7 @@ impl Length {
     ///
     /// [`new`]: Self::new
     pub const fn new_ok(value: usize) -> Option<Self> {
-        const_result_ok!(Self::new(value))
+        const_ok!(Self::new(value))
     }
 
     /// Checks if the provided value is valid for [`Self`].
@@ -127,7 +129,7 @@ impl Length {
     #[allow(unused_variables)]
     pub const fn check(value: usize) -> Result<(), Error> {
         #[cfg(not(feature = "unsafe-length"))]
-        quick_check!(value < MIN => error!(value));
+        const_early!(value < MIN => error!(value));
 
         Ok(())
     }

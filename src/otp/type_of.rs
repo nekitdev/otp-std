@@ -11,9 +11,6 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use thiserror::Error;
 
-#[cfg(feature = "serde")]
-use crate::macros::deserialize_str;
-
 use crate::macros::errors;
 
 #[cfg(feature = "auth")]
@@ -38,7 +35,7 @@ impl Serialize for Type {
 #[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for Type {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let string = deserialize_str!(deserializer)?;
+        let string = <&str>::deserialize(deserializer)?;
 
         string.parse().map_err(de::Error::custom)
     }

@@ -16,9 +16,6 @@ use sha2::{Sha256, Sha512};
 
 use thiserror::Error;
 
-#[cfg(feature = "serde")]
-use crate::macros::deserialize_str;
-
 use crate::macros::errors;
 
 /// HMAC type using SHA-1.
@@ -112,7 +109,7 @@ impl Serialize for Algorithm {
 #[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for Algorithm {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let string = deserialize_str!(deserializer)?;
+        let string = <&str>::deserialize(deserializer)?;
 
         string.parse().map_err(de::Error::custom)
     }

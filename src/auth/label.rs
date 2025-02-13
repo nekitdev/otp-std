@@ -3,6 +3,8 @@
 use std::{fmt, str::FromStr};
 
 use bon::Builder;
+use const_macros::const_early;
+
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
@@ -17,7 +19,7 @@ use crate::{
         url::{self, Url},
         utf8,
     },
-    macros::{errors, quick_check},
+    macros::errors,
 };
 
 /// Represents errors that occur when the label is empty.
@@ -140,7 +142,7 @@ impl FromStr for Label<'_> {
     type Err = ParseError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        quick_check!(string.is_empty() => empty_error!());
+        const_early!(string.is_empty() => empty_error!());
 
         if let Some((issuer_string, user_string)) = string.split_once(SEPARATOR) {
             let issuer = issuer_string.parse().map_err(Self::Err::part)?;

@@ -2,6 +2,8 @@
 
 use std::{fmt, str::FromStr};
 
+use const_macros::{const_early, const_ok, const_try};
+
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
@@ -9,10 +11,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use thiserror::Error;
 
-use crate::{
-    int,
-    macros::{const_result_ok, const_try, errors, quick_check},
-};
+use crate::{int, macros::errors};
 
 /// The minimum digits value.
 pub const MIN: u8 = 6;
@@ -179,7 +178,7 @@ impl Digits {
     ///
     /// [`new`]: Self::new
     pub const fn new_ok(value: u8) -> Option<Self> {
-        const_result_ok!(Self::new(value))
+        const_ok!(Self::new(value))
     }
 
     /// Checks if the provided value is valid for [`Self`].
@@ -188,7 +187,7 @@ impl Digits {
     ///
     /// Returns [`struct@Error`] if the given value is less than [`MIN`] or greater than [`MAX`].
     pub const fn check(value: u8) -> Result<(), Error> {
-        quick_check!(value < MIN || value > MAX => error!(value));
+        const_early!(value < MIN || value > MAX => error!(value));
 
         Ok(())
     }

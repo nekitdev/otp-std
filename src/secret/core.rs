@@ -15,9 +15,6 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use thiserror::Error;
 
-#[cfg(feature = "serde")]
-use crate::macros::deserialize_str;
-
 use crate::secret::{
     encoding,
     length::{self, Length},
@@ -42,7 +39,7 @@ impl Serialize for Secret<'_> {
 #[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for Secret<'_> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let string = deserialize_str!(deserializer)?;
+        let string = <&str>::deserialize(deserializer)?;
 
         Self::decode(string).map_err(de::Error::custom)
     }

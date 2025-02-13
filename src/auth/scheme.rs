@@ -1,12 +1,11 @@
 //! Authentication scheme.
 
+use const_macros::const_early;
+
 use miette::Diagnostic;
 use thiserror::Error;
 
-use crate::{
-    auth::url::Url,
-    macros::{errors, quick_check},
-};
+use crate::{auth::url::Url, macros::errors};
 
 /// The scheme used in OTP URLs.
 pub const SCHEME: &str = "otpauth";
@@ -42,7 +41,7 @@ errors! {
 /// Returns [`struct@Error`] when the scheme does not match [`SCHEME`].
 pub fn check<S: AsRef<str>>(scheme: S) -> Result<(), Error> {
     fn check_inner(scheme: &str) -> Result<(), Error> {
-        quick_check!(scheme != SCHEME => error!(scheme));
+        const_early!(scheme != SCHEME => error!(scheme));
 
         Ok(())
     }

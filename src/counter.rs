@@ -2,6 +2,8 @@
 
 use std::{fmt, str::FromStr};
 
+use const_macros::const_none;
+
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
@@ -11,7 +13,7 @@ use thiserror::Error;
 
 use crate::{
     int::{self, ParseError},
-    macros::{const_option_map, errors},
+    macros::errors,
 };
 
 /// The default counter value.
@@ -130,7 +132,9 @@ impl Counter {
     /// ```
     #[must_use = "this method returns the incremented counter instead of modifying the original"]
     pub const fn try_next(self) -> Option<Self> {
-        const_option_map!(self.get().checked_add(1) => Self::new)
+        let value = const_none!(self.get().checked_add(1));
+
+        Some(Self::new(value))
     }
 
     /// Returns the incremented counter, panicking on overflows.

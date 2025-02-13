@@ -2,11 +2,13 @@
 //!
 //! The [`Otp`] enum contains [`Hotp`] and [`Totp`] as its variants.
 
+#[cfg(feature = "auth")]
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "auth")]
 use thiserror::Error;
 
 use crate::{base::Base, hotp::Hotp, otp::type_of::Type, totp::Totp};

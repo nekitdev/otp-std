@@ -2,6 +2,8 @@
 
 use std::{fmt, str::FromStr, time::Duration};
 
+use const_macros::{const_early, const_ok, const_try};
+
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
@@ -9,10 +11,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use thiserror::Error;
 
-use crate::{
-    int,
-    macros::{const_result_ok, const_try, errors, quick_check},
-};
+use crate::{int, macros::errors};
 
 /// The minimum period value.
 pub const MIN: u64 = 1;
@@ -176,7 +175,7 @@ impl Period {
     ///
     /// [`new`]: Self::new
     pub const fn new_ok(value: u64) -> Option<Self> {
-        const_result_ok!(Self::new(value))
+        const_ok!(Self::new(value))
     }
 
     /// Checks if the given value is valid for [`Self`].
@@ -185,7 +184,7 @@ impl Period {
     ///
     /// Returns [`struct@Error`] if the given value is less than [`MIN`].
     pub const fn check(value: u64) -> Result<(), Error> {
-        quick_check!(value < MIN => error!(value));
+        const_early!(value < MIN => error!(value));
 
         Ok(())
     }

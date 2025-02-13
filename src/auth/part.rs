@@ -2,6 +2,8 @@
 
 use std::{borrow::Cow, fmt, str::FromStr};
 
+use const_macros::const_early;
+
 use miette::Diagnostic;
 
 #[cfg(feature = "serde")]
@@ -11,7 +13,7 @@ use thiserror::Error;
 
 use crate::{
     auth::{url, utf8},
-    macros::{errors, quick_check},
+    macros::errors,
 };
 
 /// The separator used to join parts.
@@ -171,9 +173,9 @@ impl<'p> Part<'p> {
     /// Returns [`struct@Error`] if the given string is empty or contains the [`SEPARATOR`].
     pub fn check<S: AsRef<str>>(string: S) -> Result<(), Error> {
         fn check_inner(string: &str) -> Result<(), Error> {
-            quick_check!(string.is_empty() => empty_error!());
+            const_early!(string.is_empty() => empty_error!());
 
-            quick_check!(string.contains(SEPARATOR) => separator_error!(string));
+            const_early!(string.contains(SEPARATOR) => separator_error!(string));
 
             Ok(())
         }
