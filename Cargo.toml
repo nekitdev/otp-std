@@ -59,6 +59,8 @@ optional = true
 [features]
 default = ["generate-secret", "auth"]
 unsafe-length = []
+serde = ["dep:serde"]
+sha2 = ["dep:sha2"]
 generate-secret = ["dep:rand"]
 auth = ["dep:url", "dep:urlencoding"]
 
